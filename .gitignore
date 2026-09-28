@@ -1,0 +1,6 @@
+.env
+.study.pid
+*.log
+.DS_Store
+node_modules/
+*.zip

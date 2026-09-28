@@ -1,0 +1,10 @@
+import test from 'node:test'; import assert from 'node:assert/strict';
+import {teachingWeek,isProgressItem,classifyStage,extractReferences,extractWeekNumber,normalizeModule,assignSequentialWeeks,nextReview} from '../lib/study.js';
+test('Week 1 starts 2026-07-27',()=>{assert.equal(teachingWeek(new Date('2026-07-27T12:00:00')),1);assert.equal(teachingWeek(new Date('2026-08-24T12:00:00')),5)});
+test('overview and navigation do not count',()=>{assert.equal(isProgressItem({type:'Page',title:'Module 1 Overview'}),false);assert.equal(isProgressItem({type:'File',title:'Lecture slides'}),true)});
+test('learning stages are inferred',()=>{assert.equal(classifyStage({title:'Pre-class reading'}),'preview');assert.equal(classifyStage({title:'Tutorial exercises'}),'practice')});
+test('references preserve source and category',()=>{const [r]=extractReferences('<p>Required reading: <a href="https://example.com/a.pdf">Article A</a></p>',{title:'Week 2 page'});assert.equal(r.category,'required');assert.equal(r.sourceTitle,'Week 2 page')});
+test('only real week items track progress',()=>{const m=normalizeModule({name:'Week 2',items:[{type:'Page',title:'Overview'},{type:'File',title:'Lecture'}]});assert.equal(m.items[0].trackProgress,false);assert.equal(m.items[1].trackProgress,true)});
+test('week numbers support common Canvas naming styles',()=>{assert.equal(extractWeekNumber('Topic 07 — Regression'),7);assert.equal(extractWeekNumber('Module Three'),3);assert.equal(extractWeekNumber('4. Professional identity'),4)});
+test('unnumbered substantive modules receive sequential weeks',()=>{const modules=[normalizeModule({id:1,name:'Welcome',items:[{type:'Page',title:'Course information'}]}),normalizeModule({id:2,name:'Data foundations',items:[{type:'File',title:'Lecture slides'}]})];const inferred=assignSequentialWeeks(modules);assert.equal(inferred[0].week,null);assert.equal(inferred[1].week,1);assert.equal(inferred[1].items[0].trackProgress,true)});
+test('spaced repetition expands and resets',()=>{assert.equal(nextReview('correct',1,new Date('2026-01-01')).days,7);assert.equal(nextReview('incorrect',4,new Date('2026-01-01')).level,0)});
