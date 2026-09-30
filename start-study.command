@@ -3,7 +3,7 @@ cd "$(dirname "$0")"
 PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
 if [ ! -f .env ]; then
-  for OLD_ENV in "../study-v0.4.0/.env" "../study-v0.3.2/.env" "../study-v0.3.1/.env" "../study-v0.3.0/.env" "../study-v0.2 2/.env" "../study-v0.2.2/.env" "../study-v0.2/.env" "../personal-workstation-v0.1.1/.env" "../uts-study-hub-vNext/.env"; do
+  for OLD_ENV in "../study-v0.4.1/.env" "../study-v0.4.0/.env" "../study-v0.3.2/.env" "../study-v0.3.1/.env" "../study-v0.3.0/.env" "../study-v0.2 2/.env" "../study-v0.2.2/.env" "../study-v0.2/.env" "../personal-workstation-v0.1.1/.env" "../uts-study-hub-vNext/.env"; do
     if [ -f "$OLD_ENV" ]; then
       cp "$OLD_ENV" .env
       break
@@ -11,7 +11,7 @@ if [ ! -f .env ]; then
   done
 fi
 
-for OLD_PID_FILE in "../study-v0.4.0/.study.pid" "../study-v0.3.2/.study.pid" "../study-v0.3.1/.study.pid" "../study-v0.3.0/.study.pid" "../study-v0.2 2/.study.pid" "../study-v0.2.2/.study.pid" "../study-v0.2/.study.pid" "../personal-workstation-v0.1.1/.workstation.pid"; do
+for OLD_PID_FILE in "../study-v0.4.1/.study.pid" "../study-v0.4.0/.study.pid" "../study-v0.3.2/.study.pid" "../study-v0.3.1/.study.pid" "../study-v0.3.0/.study.pid" "../study-v0.2 2/.study.pid" "../study-v0.2.2/.study.pid" "../study-v0.2/.study.pid" "../personal-workstation-v0.1.1/.workstation.pid"; do
   if [ -f "$OLD_PID_FILE" ]; then
     OLD_PID="$(cat "$OLD_PID_FILE")"
     kill "$OLD_PID" 2>/dev/null

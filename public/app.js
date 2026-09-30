@@ -1,5 +1,5 @@
 function readSaved(key,fallback){try{return JSON.parse(localStorage.getItem(key))??fallback}catch{return fallback}}
-const state={page:'home',courses:[],selected:readSaved('selectedCourses',[]),course:null,modules:[],week:null,config:null,assessments:[],overview:null,allCourses:[],assessmentError:''};
+const state={page:'home',courses:[],selected:readSaved('selectedCourses',[]),course:null,modules:[],week:null,config:null,assessments:[],overview:null,allCourses:[],assessmentError:'',timetable:readSaved('studyTimetable',[])};
 const app=document.querySelector('#app');
 const api=async(url,opt={})=>{const response=await fetch(url,{headers:{'content-type':'application/json',...(opt.headers||{})},...opt}),data=await response.json();if(!response.ok)throw new Error(data.error||'Request failed');return data};
 const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -34,8 +34,9 @@ function frame(content){
 }
 function bindNav(){
   const footer=document.querySelector('.sidebar-bottom');
+  const overviewNav=document.querySelector('.sidebar nav');if(overviewNav&&!overviewNav.querySelector('[data-page="timetable"]'))overviewNav.insertAdjacentHTML('beforeend',navButton('timetable','Timetable','▦'));
   if(footer&&state.allCourses.length){footer.insertAdjacentHTML('beforebegin','<button class="text-button choose-courses">Choose courses</button>');document.querySelector('.choose-courses').onclick=chooseCourses}
-  document.querySelectorAll('[data-page]').forEach(element=>element.onclick=()=>element.dataset.page==='assessments'?assessmentsPage():home());
+  document.querySelectorAll('[data-page]').forEach(element=>element.onclick=()=>element.dataset.page==='assessments'?assessmentsPage():element.dataset.page==='timetable'?timetablePage():home());
   document.querySelectorAll('[data-course]').forEach(element=>element.onclick=()=>openCourse(Number(element.dataset.course)));
 }
 
@@ -67,7 +68,7 @@ async function home(){
   if(!state.config?.canvasConfigured){frame(`<section class="setup-card"><span class="overline">YOUR SEMESTER, IN FOCUS</span><h1>Your courses start here.</h1><p>Connect Canvas to bring in your nearest assessments, weekly materials and learning progress.</p><button class="button primary" onclick="location.reload()">Refresh connection</button></section>`);return}
   const courses=selectedCourses();
   frame(`<header class="welcome-header"><div><span class="overline">SPRING 2026 <i></i> WEEK ${state.config.currentWeek||1}</span><h1>Good ${new Date().getHours()<12?'morning':new Date().getHours()<18?'afternoon':'evening'}.</h1><p>Here’s what deserves your attention this week.</p></div><span class="term-chip">Week ${state.config.currentWeek||1}</span></header><section class="section-block"><div class="section-heading"><div><span class="overline">FIRST THINGS FIRST</span><h2>Upcoming assessments</h2></div><button class="text-button" data-page="assessments">All assessments <span>→</span></button></div><div id="home-assessments" class="assessment-list">${remainingAssessments().slice(0,3).map(assessmentCard).join('')||'<div class="empty-card"><span class="empty-icon">✓</span><div><b>You’re clear for now</b><p>No upcoming assessments found in your selected courses.</p></div></div>'}</div></section><section class="section-block week-block"><div class="section-heading"><div><span class="overline">YOUR LEARNING</span><h2>This week across your courses</h2></div><span class="section-count">${courses.length} courses</span></div><div id="weekly-courses" class="weekly-grid">${courses.map(weeklyCourseSkeleton).join('')}</div></section>`);
-  bindNav();bindAssessmentCards();loadWeeklyCourses();
+  document.querySelector('.week-block')?.insertAdjacentHTML('beforebegin',homeTimetableSection());bindNav();bindAssessmentCards();bindTimetableActions();loadWeeklyCourses();
 }
 function weeklyCourseSkeleton(course){return`<article class="week-card" id="week-course-${course.id}"><div class="week-card-top"><div class="course-badge">${esc(code(course))}</div><span class="progress-caption">Loading week…</span></div><h3>${esc(title(course))}</h3><div class="week-subtitle">Reading Canvas structure</div><div class="progress-track"><span></span></div><div class="week-card-bottom"><span>Loading learning items</span><button class="card-arrow" data-course="${course.id}">→</button></div></article>`}
 async function loadWeeklyCourses(){
@@ -78,6 +79,31 @@ async function loadWeeklyCourses(){
     return`<article class="week-card" data-course="${course.id}"><div class="week-card-top"><div class="course-badge">${esc(code(course))}</div><span class="progress-caption">${pct}% complete</span></div><h3>${esc(title(course))}</h3><div class="week-subtitle">${esc(week.name)}${week.inferredWeek?' · organised automatically':''}</div><div class="progress-track"><span style="width:${pct}%"></span></div><div class="week-card-bottom"><span>${done} of ${learnable.length} learning items complete</span><button class="card-arrow" data-course="${course.id}">→</button></div></article>`;
   }catch(error){return`<article class="week-card error-card"><div class="course-badge">${esc(code(course))}</div><h3>${esc(title(course))}</h3><p>${esc(error.message)}</p></article>`}}));
   const host=document.querySelector('#weekly-courses');if(host){host.innerHTML=cards.join('');host.querySelectorAll('[data-course]').forEach(element=>element.onclick=()=>openCourse(Number(element.dataset.course)))}
+}
+
+const timetableDays=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+function saveTimetable(){localStorage.setItem('studyTimetable',JSON.stringify(state.timetable))}
+function startOfWeek(){const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()-((date.getDay()+6)%7));return date}
+function dateForDay(day){const date=startOfWeek();date.setDate(date.getDate()+Number(day)-1);return date}
+function timetableTone(entry){const value=[...String(entry.course||'')].reduce((sum,char)=>sum+char.charCodeAt(0),0);return`tone-${value%4}`}
+function sortedTimetable(){return[...state.timetable].sort((a,b)=>Number(a.day)-Number(b.day)||String(a.start).localeCompare(String(b.start)))}
+function timetableBlock(entry){return`<button class="class-block ${timetableTone(entry)}" data-edit-class="${esc(entry.id)}"><span>${esc(entry.start)}–${esc(entry.end)}</span><b>${esc(entry.course)}</b><small>${esc(entry.location)}</small></button>`}
+function timetableGrid(compact=false){
+  const today=((new Date().getDay()+6)%7)+1,entries=sortedTimetable();
+  return`<div class="timetable-grid ${compact?'compact':''}">${timetableDays.map((name,index)=>{const day=index+1,list=entries.filter(entry=>Number(entry.day)===day),date=dateForDay(day);return`<section class="timetable-day ${day===today?'is-today':''}"><header><span>${name.slice(0,3).toUpperCase()}</span><b>${date.getDate()}</b></header><div class="day-classes">${list.map(timetableBlock).join('')||'<div class="no-class">—</div>'}</div></section>`}).join('')}</div>`;
+}
+function homeTimetableSection(){return`<section class="section-block timetable-home"><div class="section-heading"><div><span class="overline">YOUR SCHEDULE</span><h2>This week’s timetable</h2></div><button class="text-button" data-page="timetable">Edit timetable <span>→</span></button></div>${state.timetable.length?timetableGrid(true):'<button class="empty-card timetable-empty" data-add-class><span class="empty-icon">＋</span><div><b>Add your weekly classes</b><p>Enter the course, time and location once; Study will show it here every week.</p></div></button>'}</section>`}
+function timetablePage(){
+  state.page='timetable';
+  frame(`<header class="page-header"><div><span class="overline">WEEKLY ROUTINE</span><h1>Timetable</h1><p>Your own recurring class schedule, stored privately on this Mac.</p></div><button class="button primary" data-add-class>＋ Add class</button></header><section class="timetable-panel">${timetableGrid()}${!state.timetable.length?'<div class="timetable-help"><b>Your week is empty.</b><p>Add each lecture, tutorial, workshop or lab. You can edit a class later by selecting its card.</p></div>':''}</section><p class="local-note">This timetable is entered manually and does not change Canvas.</p>`);
+  bindTimetableActions();
+}
+function bindTimetableActions(){document.querySelectorAll('[data-add-class]').forEach(button=>button.onclick=()=>openTimetableEditor());document.querySelectorAll('[data-edit-class]').forEach(button=>button.onclick=()=>openTimetableEditor(button.dataset.editClass))}
+function openTimetableEditor(id){
+  const existing=state.timetable.find(entry=>String(entry.id)===String(id))||{day:1,start:'09:00',end:'10:00',course:'',location:''};
+  showDrawer(`<span class="overline">${id?'EDIT CLASS':'NEW CLASS'}</span><h2>${id?'Update this class':'Add to your timetable'}</h2><form class="timetable-form" id="timetable-form"><label>Course name<input name="course" value="${esc(existing.course)}" list="course-name-options" placeholder="e.g. Data Analytics" required></label><datalist id="course-name-options">${selectedCourses().map(course=>`<option value="${esc(title(course))}"></option>`).join('')}</datalist><label>Day<select name="day">${timetableDays.map((day,index)=>`<option value="${index+1}" ${Number(existing.day)===index+1?'selected':''}>${day}</option>`).join('')}</select></label><div class="time-fields"><label>Starts<input type="time" name="start" value="${esc(existing.start)}" required></label><label>Ends<input type="time" name="end" value="${esc(existing.end)}" required></label></div><label>Location<input name="location" value="${esc(existing.location)}" placeholder="e.g. CB11.00.405 or Online" required></label><p class="form-error" id="timetable-error"></p><div class="form-actions">${id?'<button class="button danger" type="button" id="delete-class">Delete</button>':''}<button class="button primary" type="submit">${id?'Save changes':'Add class'}</button></div></form>`);
+  document.querySelector('#timetable-form').onsubmit=event=>{event.preventDefault();const data=new FormData(event.currentTarget),entry={id:id||String(Date.now()),course:String(data.get('course')).trim(),day:Number(data.get('day')),start:String(data.get('start')),end:String(data.get('end')),location:String(data.get('location')).trim()};if(!entry.course||!entry.location||!entry.start||!entry.end||entry.end<=entry.start){document.querySelector('#timetable-error').textContent=entry.end<=entry.start?'End time must be later than start time.':'Complete every field.';return}state.timetable=id?state.timetable.map(item=>String(item.id)===String(id)?entry:item):[...state.timetable,entry];saveTimetable();document.querySelector('.drawer-backdrop').remove();state.page==='timetable'?timetablePage():home()};
+  const remove=document.querySelector('#delete-class');if(remove)remove.onclick=()=>{if(!confirm('Delete this class from your timetable?'))return;state.timetable=state.timetable.filter(entry=>String(entry.id)!==String(id));saveTimetable();document.querySelector('.drawer-backdrop').remove();timetablePage()};
 }
 
 function bindAssessmentCards(){const host=document.querySelector('#home-assessments')||document.querySelector('.full-list');if(state.assessmentError&&host)host.innerHTML=`<div class="empty-card"><div><b>Assessment sync needs attention</b><p>${esc(state.assessmentError)}</p></div></div>`;document.querySelectorAll('[data-assessment]').forEach(element=>element.onclick=()=>openAssessment(element.dataset.courseId,element.dataset.assessment))}

@@ -19,6 +19,8 @@ Gemini uses an automatic two-model strategy: Study first asks `gemini-3.8-flash`
 
 Course chat renders headings, bold text, numbered steps, bullets, code, and quotations instead of showing raw Markdown symbols. When a process or relationship benefits from a visual explanation, the tutor can return a compact concept map with a legend; simple answers stay text-only.
 
+The manual weekly timetable lets a student add recurring classes with a course name, weekday, start and end time, and location. A compact schedule appears on the This Week page, while the dedicated Timetable view supports adding, editing, and deleting classes. Timetable data stays in browser local storage and is never sent to Canvas or GitHub.
+
 Courses do not have to use exact `Week 1` module names. Study recognises Week, Module, Topic, Unit, Session, Chapter, numbered modules, and number words. If a subject only exposes Canvas Pages or Files, Study builds a simple course-material view automatically.
 
 To close the app, double-click `stop-study.command`.
