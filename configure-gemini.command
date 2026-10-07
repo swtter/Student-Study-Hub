@@ -2,7 +2,7 @@
 cd "$(dirname "$0")"
 
 if [ ! -f .env ]; then
-  for OLD_ENV in "../study-v0.4.1/.env" "../study-v0.4.0/.env" "../study-v0.3.2/.env" "../study-v0.3.1/.env" "../study-v0.3.0/.env" "../study-v0.2 2/.env" "../study-v0.2.2/.env" "../study-v0.2/.env" "../personal-workstation-v0.1.1/.env" "../uts-study-hub-vNext/.env"; do
+  for OLD_ENV in "../study-v0.5.0/.env" "../study-v0.4.1/.env" "../study-v0.4.0/.env" "../study-v0.3.2/.env" "../study-v0.3.1/.env" "../study-v0.3.0/.env" "../study-v0.2 2/.env" "../study-v0.2.2/.env" "../study-v0.2/.env" "../personal-workstation-v0.1.1/.env" "../uts-study-hub-vNext/.env"; do
     if [ -f "$OLD_ENV" ]; then
       cp "$OLD_ENV" .env
       break

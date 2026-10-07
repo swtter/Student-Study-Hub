@@ -1,5 +1,7 @@
 # Study
 
+Version 0.6.0 adds “Ask all weeks” next to “Ask this week” on a course page. Search concepts across the semester, compare weeks, or ask for revision priorities. Responses show the retrieved Canvas page links and reading coverage. All-week conversations are stored separately from each weekly conversation. The first request reads the course's published module pages with four concurrent requests; the index is cached in server memory for ten minutes. Relevant passages are selected within a bounded context budget. This currently indexes Canvas Page text only; PDF, PPT, DOCX and video bodies are not analysed.
+
 A compact semester dashboard focused on the next Assessment, this week’s Canvas content, and clear learning progress across four courses.
 
 ## Start on macOS
